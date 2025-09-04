@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Stage, Layer as KonvaLayer, Image as KonvaImage, Rect, Line, Circle, Transformer, Group, Text } from 'react-konva';
 import { useEditorStore } from '@/store/editor-store';
-import { useToolsStore } from '@/store/tools-store';
+import { useToolsStore, ToolType } from '@/store/tools-store';
 import { BaseImageLayer, AdjustmentLayer, CensorLayer, Layer } from '@/types/editor';
 import ViewportControls from './ViewportControls';
 import CensorShape from './CensorShape';
@@ -17,11 +17,10 @@ export default function Canvas({ className }: CanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
   const [scale, setScale] = useState(1);
-  const stageRef = useRef<any>(null);
+  const stageRef = useRef<Konva.Stage | null>(null);
   const [currentPath, setCurrentPath] = useState<number[]>([]);
   const [paths, setPaths] = useState<{ points: number[]; color: string; size: number; opacity: number }[]>([]);
   const isDrawing = useRef(false);
-  const currentLayerRef = useRef<Konva.Layer | null>(null);
 
   const { 
     stage, 
@@ -39,18 +38,15 @@ export default function Canvas({ className }: CanvasProps) {
     censorSettings,
     setIsDrawing,
     showGrid,
-    showRulers,
     guides,
     cropRatio,
-    constrainProportions,
   } = useToolsStore();
   
   const [selectionStart, setSelectionStart] = useState<{ x: number; y: number } | null>(null);
   const [selectionEnd, setSelectionEnd] = useState<{ x: number; y: number } | null>(null);
   const [isSelecting, setIsSelecting] = useState(false);
   const [cropArea, setCropArea] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
-  const [selectedShapeRef, setSelectedShapeRef] = useState<any>(null);
-  const transformerRef = useRef<any>(null);
+  const transformerRef = useRef<Konva.Transformer | null>(null);
   const [isPanning, setIsPanning] = useState(false);
   const [draggingCropHandle, setDraggingCropHandle] = useState<string | null>(null);
   const [cropStartPos, setCropStartPos] = useState<{ x: number; y: number } | null>(null);
@@ -111,7 +107,7 @@ export default function Canvas({ className }: CanvasProps) {
         setSpacePressed(false);
         if (previousTool) {
           const { setActiveTool } = useToolsStore.getState();
-          setActiveTool(previousTool as any);
+          setActiveTool(previousTool as ToolType);
           setPreviousTool(null);
         }
         // Stop panning when releasing spacebar
@@ -137,7 +133,7 @@ export default function Canvas({ className }: CanvasProps) {
       const dx = (e.clientX - cropStartPos.x) / scale;
       const dy = (e.clientY - cropStartPos.y) / scale;
       
-      let newCropArea = { ...initialCropArea };
+      const newCropArea = { ...initialCropArea };
       const aspectRatio = (!cropRatio || cropRatio === 'free' || cropRatio === '') ? 0 : 
         cropRatio === '1:1' ? 1 :
         cropRatio === '4:3' ? 4/3 :
@@ -284,11 +280,10 @@ export default function Canvas({ className }: CanvasProps) {
                            stage.findOne(`.censor-shape-${selectedLayer.id}`);
           
           if (shapeNode && transformerRef.current) {
-            setSelectedShapeRef(shapeNode);
             // Show transformer if select tool is active
             if (activeTool === 'select') {
               transformerRef.current.nodes([shapeNode]);
-              transformerRef.current.getLayer().batchDraw();
+              transformerRef.current.getLayer()?.batchDraw();
             } else {
               transformerRef.current.nodes([]);
               transformerRef.current.getLayer()?.batchDraw();
@@ -297,13 +292,12 @@ export default function Canvas({ className }: CanvasProps) {
         }
       }, 100); // Slightly longer delay to ensure tool switch happens
     } else if (transformerRef.current) {
-      setSelectedShapeRef(null);
       transformerRef.current.nodes([]);
       transformerRef.current.getLayer()?.batchDraw();
     }
   }, [selectedLayerId, layers, activeTool]);
 
-  const handleWheel = (e: any) => {
+  const handleWheel = (e: Konva.KonvaEventObject<WheelEvent>) => {
     e.evt.preventDefault();
     const stage = e.target.getStage();
     if (!stage) return;
@@ -327,9 +321,11 @@ export default function Canvas({ className }: CanvasProps) {
     setScale(clampedScale);
   };
 
-  const handleMouseDown = (e: any) => {
+  const handleMouseDown = (e: Konva.KonvaEventObject<MouseEvent>) => {
     const stage = e.target.getStage();
+    if (!stage) return;
     const pos = stage.getPointerPosition();
+    if (!pos) return;
     const relativePos = {
       x: (pos.x - stage.x()) / scale,
       y: (pos.y - stage.y()) / scale,
@@ -350,7 +346,6 @@ export default function Canvas({ className }: CanvasProps) {
       if (e.target === stage || e.target.className === 'Layer') {
         const { setSelectedLayer } = useEditorStore.getState();
         setSelectedLayer(null);
-        setSelectedShapeRef(null);
         if (transformerRef.current) {
           transformerRef.current.nodes([]);
           transformerRef.current.getLayer()?.batchDraw();
@@ -401,8 +396,9 @@ export default function Canvas({ className }: CanvasProps) {
     }
   };
 
-  const handleMouseMove = (e: any) => {
+  const handleMouseMove = (e: Konva.KonvaEventObject<MouseEvent>) => {
     const stage = e.target.getStage();
+    if (!stage) return;
     const pos = stage.getPointerPosition();
     if (!pos) return;
     
@@ -416,7 +412,7 @@ export default function Canvas({ className }: CanvasProps) {
       const dx = (e.evt.clientX - cropStartPos.x) / scale;
       const dy = (e.evt.clientY - cropStartPos.y) / scale;
       
-      let newCropArea = { ...initialCropArea };
+      const newCropArea = { ...initialCropArea };
       const aspectRatio = (!cropRatio || cropRatio === 'free' || cropRatio === '') ? 0 : 
         cropRatio === '1:1' ? 1 :
         cropRatio === '4:3' ? 4/3 :
@@ -810,9 +806,6 @@ export default function Canvas({ className }: CanvasProps) {
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
-        onTouchStart={handleMouseDown}
-        onTouchMove={handleMouseMove}
-        onTouchEnd={handleMouseUp}
         draggable={false}
       >
         <KonvaLayer>
@@ -927,10 +920,9 @@ export default function Canvas({ className }: CanvasProps) {
                     setSelectedLayer(layer.id);
                     // Set the shape ref and immediately attach transformer
                     const shapeNode = e.target;
-                    setSelectedShapeRef(shapeNode);
-                    if (transformerRef.current && activeTool === 'select') {
+                            if (transformerRef.current && activeTool === 'select') {
                       transformerRef.current.nodes([shapeNode]);
-                      transformerRef.current.getLayer().batchDraw();
+                      transformerRef.current.getLayer()?.batchDraw();
                     }
                   }}
                   onDragEnd={(e) => {

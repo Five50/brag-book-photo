@@ -5,8 +5,8 @@ export interface AuditEntry {
   userId?: string;
   action: AuditAction;
   details: AuditDetails;
-  beforeState?: any;
-  afterState?: any;
+  beforeState?: Record<string, unknown>;
+  afterState?: Record<string, unknown>;
 }
 
 export interface AuditAction {
@@ -18,7 +18,7 @@ export interface AuditAction {
 export interface AuditDetails {
   toolUsed?: string;
   layerId?: string;
-  parameters?: Record<string, any>;
+  parameters?: Record<string, unknown>;
   duration?: number;
   fileMetadata?: FileMetadata;
 }

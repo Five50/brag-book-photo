@@ -12,9 +12,9 @@ interface CensorShapeProps {
   canvasHeight: number;
   isSelected: boolean;
   activeTool: string;
-  onShapeClick: (e: any) => void;
-  onDragEnd: (e: any) => void;
-  onTransformEnd: (e: any) => void;
+  onShapeClick: (e: Konva.KonvaEventObject<MouseEvent>) => void;
+  onDragEnd: (e: Konva.KonvaEventObject<DragEvent>) => void;
+  onTransformEnd: (e: Konva.KonvaEventObject<Event>) => void;
 }
 
 export default function CensorShape({
@@ -28,8 +28,8 @@ export default function CensorShape({
   onDragEnd,
   onTransformEnd,
 }: CensorShapeProps) {
-  const groupRef = useRef<any>(null);
-  const imageRef = useRef<any>(null);
+  const groupRef = useRef<Konva.Group | null>(null);
+  const imageRef = useRef<Konva.Image | null>(null);
   
   // Apply cache for better performance with filters
   useEffect(() => {
@@ -124,21 +124,7 @@ export default function CensorShape({
           fill={layer.effect?.color || '#000000'}
           draggable={isSelected && !layer.locked && activeTool === 'select'}
           onClick={onShapeClick}
-          onDragEnd={(e) => {
-            const node = e.target;
-            const newX = node.x();
-            const newY = node.y();
-            onDragEnd({
-              ...e,
-              target: {
-                ...e.target,
-                x: () => newX + x,
-                y: () => newY + y
-              }
-            });
-            node.x(0);
-            node.y(0);
-          }}
+          onDragEnd={onDragEnd}
           onTransformEnd={onTransformEnd}
         />
       );
@@ -148,7 +134,7 @@ export default function CensorShape({
   // Blur or pixelate - render clipped image with effect
   if (!baseImage) return null;
 
-  const clipFunc = (ctx: any) => {
+  const clipFunc = (ctx: Konva.Context) => {
     if (layer.shape?.type === 'rectangle') {
       ctx.rect(0, 0, layer.shape?.bounds?.width || 200, layer.shape?.bounds?.height || 200);
     } else if (layer.shape?.type === 'circle') {
@@ -228,7 +214,7 @@ export default function CensorShape({
           layer.censorType === 'blur' ? Konva.Filters.Blur :
           layer.censorType === 'pixelate' ? Konva.Filters.Pixelate :
           null
-        ].filter(Boolean) as any[]}
+        ].filter(Boolean) as ((this: Konva.Node, imageData: ImageData) => void)[]}
         blurRadius={layer.effect?.blurRadius || 20}
         pixelSize={layer.effect?.pixelSize || 20}
         listening={false}

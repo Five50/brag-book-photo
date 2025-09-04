@@ -21,7 +21,7 @@ interface EditorState {
   setBaseImage: (image: HTMLImageElement, metadata: { name: string; size: number }) => void;
 }
 
-export const useEditorStore = create<EditorState>((set, get) => ({
+export const useEditorStore = create<EditorState>((set) => ({
   stage: null,
   layers: [],
   selectedLayerId: null,
@@ -95,7 +95,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   setLoading: (loading) => set({ isLoading: loading }),
 
-  setBaseImage: (image, metadata) => {
+  setBaseImage: (image) => {
     const baseLayer: BaseImageLayer = {
       id: 'base-layer',
       name: 'Background',

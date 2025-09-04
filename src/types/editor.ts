@@ -30,7 +30,7 @@ export interface AdjustmentLayer extends Layer {
   type: 'adjustment';
   adjustmentType: 'brightness' | 'contrast' | 'saturation' | 'exposure' | 'temperature' | 'shadows-highlights' | 'curves' | 'levels';
   parameters: AdjustmentParameters;
-  filters?: any[];
+  filters?: ((this: Konva.Node, imageData: ImageData) => void)[];
 }
 
 export interface CensorLayer extends Layer {

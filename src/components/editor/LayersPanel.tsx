@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useEditorStore } from '@/store/editor-store';
 import { useToolsStore } from '@/store/tools-store';
-import { Layer } from '@/types/editor';
+import { Layer, CensorLayer } from '@/types/editor';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -184,14 +184,14 @@ export default function LayersPanel() {
                     </span>
                     {layer.type === 'censor' && (
                       <div className="text-xs text-stone-500 mt-0.5">
-                        {(layer as any).shape?.type === 'rectangle' && '▢'}
-                        {(layer as any).shape?.type === 'circle' && '○'}
-                        {(layer as any).shape?.type === 'triangle' && '△'}
-                        {(layer as any).shape?.type === 'freeform' && '✎'}
+                        {(layer as CensorLayer).shape?.type === 'rectangle' && '▢'}
+                        {(layer as CensorLayer).shape?.type === 'circle' && '○'}
+                        {(layer as CensorLayer).shape?.type === 'triangle' && '△'}
+                        {(layer as CensorLayer).shape?.type === 'freeform' && '✎'}
                         {' '}
-                        {(layer as any).censorType === 'blur' && `Blur ${(layer as any).effect?.blurRadius}px`}
-                        {(layer as any).censorType === 'pixelate' && `Pixel ${(layer as any).effect?.pixelSize}px`}
-                        {(layer as any).censorType === 'solid' && 'Solid'}
+                        {(layer as CensorLayer).censorType === 'blur' && `Blur ${(layer as CensorLayer).effect?.blurRadius}px`}
+                        {(layer as CensorLayer).censorType === 'pixelate' && `Pixel ${(layer as CensorLayer).effect?.pixelSize}px`}
+                        {(layer as CensorLayer).censorType === 'solid' && 'Solid'}
                       </div>
                     )}
                   </div>
